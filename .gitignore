@@ -1,0 +1,44 @@
+# Linux kernel module build artifacts
+*.o
+*.ko
+*.mod
+*.mod.c
+*.mod.o
+*.symvers
+*.order
+.tmp_versions/
+.*.cmd
+.*.d
+Module.symvers
+modules.order
+
+# Device Tree compiler outputs
+*.dtbo
+*.dtb
+
+# Userspace binaries and objects
+userspace/sensor_reader
+userspace/*.o
+
+# Python / pytest cache & virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# Test & diagnostic runtime outputs
+logs/
+results/*.json
+results/*.csv
+tests/reports/
+
+# Editor / OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store

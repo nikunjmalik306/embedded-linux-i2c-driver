@@ -1,0 +1,83 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/iio/pressure/custom,bme280-sensor.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: Bosch BME280 Custom I2C Environmental Sensor Driver Binding
+
+maintainers:
+  - Nikunj Malik <nikunjmalik306@github.com>
+
+description: |
+  Out-of-tree educational and validation binding for the Bosch BME280 combined
+  digital humidity, pressure, and temperature sensor connected over an I2C bus.
+  Note: Upstream Linux uses "bosch,bme280" (bound by drivers/iio/pressure/bmp280-i2c.c).
+  This binding uses "custom,bme280-sensor" so the custom validation driver can bind
+  cleanly without colliding with the in-tree bmp280 module.
+
+properties:
+  compatible:
+    enum:
+      - custom,bme280-sensor
+      - bosch,bme280-custom
+
+  reg:
+    maxItems: 1
+    description: I2C slave address (0x76 when SDO is tied to GND, 0x77 when SDO is tied to VDDIO).
+
+  custom,temp-oversampling:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    enum: [1, 2, 3, 4, 5]
+    default: 2
+    description: Temperature oversampling register code (1=1x, 2=2x, 3=4x, 4=8x, 5=16x).
+
+  custom,pressure-oversampling:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    enum: [1, 2, 3, 4, 5]
+    default: 5
+    description: Pressure oversampling register code (1=1x, 2=2x, 3=4x, 4=8x, 5=16x).
+
+  custom,humidity-oversampling:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    enum: [1, 2, 3, 4, 5]
+    default: 1
+    description: Humidity oversampling register code (1=1x, 2=2x, 3=4x, 4=8x, 5=16x).
+
+  custom,iir-filter-coeff:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    enum: [0, 1, 2, 3, 4]
+    default: 4
+    description: IIR filter coefficient code (0=off, 1=2x, 2=4x, 3=8x, 4=16x).
+
+  custom,standby-mode:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    enum: [0, 1, 2, 3, 4, 5]
+    default: 1
+    description: |
+      Normal mode standby time t_sb[2:0] in register 0xF5:
+      0 = 0.5 ms (26 Hz), 1 = 62.5 ms (16 Hz), 2 = 125 ms (8 Hz),
+      3 = 250 ms (4 Hz), 4 = 500 ms (2 Hz), 5 = 1000 ms (1 Hz).
+
+required:
+  - compatible
+  - reg
+
+additionalProperties: false
+
+examples:
+  - |
+    i2c {
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        bme280@76 {
+            compatible = "custom,bme280-sensor";
+            reg = <0x76>;
+            custom,temp-oversampling = <0x02>;
+            custom,pressure-oversampling = <0x05>;
+            custom,humidity-oversampling = <0x01>;
+            custom,iir-filter-coeff = <0x04>;
+            custom,standby-mode = <0x01>;
+        };
+    };

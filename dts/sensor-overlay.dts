@@ -1,0 +1,62 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Raspberry Pi 5 (BCM2712 / RP1) Device Tree Overlay for Bosch BME280 Sensor
+ *
+ * Bus:        i2c1 (GPIO 2 = SDA1 / Pin 3, GPIO 3 = SCL1 / Pin 5)
+ * Address:    0x76 (default when SDO tied to GND; overrideable via dtparam)
+ * Compatible: "custom,bme280-sensor"
+ *
+ * Compile:
+ *   dtc -@ -I dts -O dtb -o dts/sensor-overlay.dtbo dts/sensor-overlay.dts
+ *
+ * Load at runtime on Raspberry Pi 5:
+ *   sudo dtoverlay dts/sensor-overlay.dtbo
+ *   # Or with custom address 0x77:
+ *   sudo dtoverlay dts/sensor-overlay.dtbo addr=0x77
+ */
+
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "brcm,bcm2712", "brcm,bcm2711", "brcm,bcm2835";
+
+	fragment@0 {
+		target = <&i2c1>;
+		__overlay__ {
+			status = "okay";
+			clock-frequency = <100000>; /* Standard mode 100 kHz for deterministic signal integrity */
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			bme280_sensor: bme280@76 {
+				compatible = "custom,bme280-sensor";
+				reg = <0x76>;
+				status = "okay";
+
+				/*
+				 * Custom Device Tree configuration properties parsed by
+				 * bme280_parse_dt_properties() in driver/sensor_driver.c:
+				 *   Oversampling: 0x01=1x, 0x02=2x, 0x03=4x, 0x04=8x, 0x05=16x
+				 *   Standby mode: 0x00=0.5ms (26Hz), 0x01=62.5ms (16Hz),
+				 *                 0x02=125ms (8Hz),  0x03=250ms (4Hz),
+				 *                 0x04=500ms (2Hz),  0x05=1000ms (1Hz)
+				 */
+				custom,temp-oversampling = <0x02>;      /* 2x oversampling */
+				custom,pressure-oversampling = <0x05>;  /* 16x oversampling */
+				custom,humidity-oversampling = <0x01>;  /* 1x oversampling */
+				custom,iir-filter-coeff = <0x04>;       /* IIR filter coeff 16 */
+				custom,standby-mode = <0x01>;           /* 62.5 ms standby (16 Hz) */
+			};
+		};
+	};
+
+	__overrides__ {
+		addr = <&bme280_sensor>, "reg:0";
+		bus_speed = <&i2c1>, "clock-frequency:0";
+		temp_osrs = <&bme280_sensor>, "custom,temp-oversampling:0";
+		press_osrs = <&bme280_sensor>, "custom,pressure-oversampling:0";
+		hum_osrs = <&bme280_sensor>, "custom,humidity-oversampling:0";
+		standby = <&bme280_sensor>, "custom,standby-mode:0";
+	};
+};

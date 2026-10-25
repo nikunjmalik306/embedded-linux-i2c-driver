@@ -1,0 +1,55 @@
+name: CI - Kernel Module Build, DT Overlay & Automated Validation
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-and-test:
+    name: Build Kernel Module (.ko), DT Overlay, Userspace C & Run Regression Suite
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Linux kernel headers, Device Tree compiler, C toolchain, and pytest
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            linux-headers-$(uname -r) \
+            device-tree-compiler \
+            python3-pytest \
+            python3-yaml \
+            valgrind \
+            kmod
+
+      - name: Build Out-of-Tree Linux Kernel Module (driver/sensor_driver.ko)
+        run: |
+          make -C driver clean
+          make -C driver KDIR=/lib/modules/$(uname -r)/build
+          test -s driver/sensor_driver.ko
+          modinfo driver/sensor_driver.ko
+
+      - name: Compile Device Tree Overlay (dts/sensor-overlay.dts -> .dtbo)
+        run: |
+          dtc -@ -I dts -O dtb -o dts/sensor-overlay.dtbo dts/sensor-overlay.dts
+          test -s dts/sensor-overlay.dtbo
+
+      - name: Build Userspace C Reader with strict compiler flags (-Wall -Wextra -Werror)
+        run: |
+          make -C userspace clean
+          make -C userspace
+
+      - name: Run Automated Pytest Regression & Fault-Injection Suite
+        run: |
+          PYTHONPATH=. pytest -v tests/test_regression.py
+
+      - name: Run Valgrind Memory Leak Verification on Userspace Binary
+        run: |
+          python3 -m tests.fixtures.bme280_sim --create-sysfs /tmp/mock_iio
+          valgrind --leak-check=full --error-exitcode=1 ./userspace/sensor_reader \
+            --sysfs-path /tmp/mock_iio/iio:device0 --count 10 --interval-ms 10 --format json

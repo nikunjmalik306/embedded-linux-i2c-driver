@@ -1,0 +1,56 @@
+# Automated Validation & Fault-Injection Test Plan for BME280 I2C Driver
+platform:
+  target_board: "Raspberry Pi 5 Model B Rev 1.0"
+  kernel: "6.6.51+rpt-rpi-2712"
+  i2c_bus: 1
+  i2c_address: 0x76
+  expected_chip_id: 0x60
+  driver_name: "bme280_custom"
+  compatible_string: "custom,bme280-sensor"
+
+physical_bounds:
+  temperature_c:
+    min: -40.0
+    max: 85.0
+    nominal_lab_min: 15.0
+    nominal_lab_max: 40.0
+  pressure_kpa:
+    min: 30.0
+    max: 110.0
+    nominal_lab_min: 95.0
+    nominal_lab_max: 105.0
+  humidity_pct:
+    min: 0.0
+    max: 100.0
+    nominal_lab_min: 20.0
+    nominal_lab_max: 85.0
+
+performance_sla:
+  single_read_latency_max_ms: 10.0
+  mean_read_latency_target_ms: 3.0
+  polling_interval_ms: 20
+  jitter_max_abs_ms: 5.0
+  stress_open_read_close_iterations: 100
+  concurrent_threads: 4
+
+fault_injection_cases:
+  - id: "FAULT-CHIP-ID-BMP280"
+    stimulus: "override_chip_id=0x58"
+    expected_errno: -19  # -ENODEV
+    description: "Reject BMP280 (0x58) when driver requires BME280 (0x60)"
+  - id: "FAULT-CHIP-ID-FF"
+    stimulus: "override_chip_id=0xFF"
+    expected_errno: -19  # -ENODEV
+    description: "Reject floating bus 0xFF Chip ID"
+  - id: "FAULT-BUS-NACK"
+    stimulus: "bus_connected=false"
+    expected_errno: -6   # -ENXIO
+    description: "Gracefully abort probe when sensor is disconnected from I2C bus"
+  - id: "FAULT-XFER-EIO"
+    stimulus: "inject_errno=-5"
+    expected_errno: -5   # -EIO
+    description: "Propagate -EIO on mid-operation I2C block transfer error without stale data"
+  - id: "FAULT-POR-SENTINEL"
+    stimulus: "adc_T=0x80000"
+    expected_errno: -61  # -ENODATA
+    description: "Detect uninitialized power-on-reset register state (0x80000) and return -ENODATA"
