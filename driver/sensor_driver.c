@@ -29,7 +29,12 @@
 #include <linux/debugfs.h>
 #include <linux/seq_file.h>
 #include <linux/ktime.h>
-#include <asm/unaligned.h>
+#include <linux/bitops.h>
+
+static inline u16 bme280_get_le16(const u8 *p)
+{
+	return (u16)p[0] | ((u16)p[1] << 8);
+}
 #include <linux/iio/iio.h>
 #include <linux/iio/sysfs.h>
 
@@ -243,19 +248,19 @@ static int bme280_read_calibration(struct bme280_data *data)
 	if (ret != BME280_CALIB_TEMP_PRESS_LEN)
 		return -EIO;
 
-	c->dig_T1 = get_unaligned_le16(&buf_tp[0]);
-	c->dig_T2 = (s16)get_unaligned_le16(&buf_tp[2]);
-	c->dig_T3 = (s16)get_unaligned_le16(&buf_tp[4]);
+	c->dig_T1 = bme280_get_le16(&buf_tp[0]);
+	c->dig_T2 = (s16)bme280_get_le16(&buf_tp[2]);
+	c->dig_T3 = (s16)bme280_get_le16(&buf_tp[4]);
 
-	c->dig_P1 = get_unaligned_le16(&buf_tp[6]);
-	c->dig_P2 = (s16)get_unaligned_le16(&buf_tp[8]);
-	c->dig_P3 = (s16)get_unaligned_le16(&buf_tp[10]);
-	c->dig_P4 = (s16)get_unaligned_le16(&buf_tp[12]);
-	c->dig_P5 = (s16)get_unaligned_le16(&buf_tp[14]);
-	c->dig_P6 = (s16)get_unaligned_le16(&buf_tp[16]);
-	c->dig_P7 = (s16)get_unaligned_le16(&buf_tp[18]);
-	c->dig_P8 = (s16)get_unaligned_le16(&buf_tp[20]);
-	c->dig_P9 = (s16)get_unaligned_le16(&buf_tp[22]);
+	c->dig_P1 = bme280_get_le16(&buf_tp[6]);
+	c->dig_P2 = (s16)bme280_get_le16(&buf_tp[8]);
+	c->dig_P3 = (s16)bme280_get_le16(&buf_tp[10]);
+	c->dig_P4 = (s16)bme280_get_le16(&buf_tp[12]);
+	c->dig_P5 = (s16)bme280_get_le16(&buf_tp[14]);
+	c->dig_P6 = (s16)bme280_get_le16(&buf_tp[16]);
+	c->dig_P7 = (s16)bme280_get_le16(&buf_tp[18]);
+	c->dig_P8 = (s16)bme280_get_le16(&buf_tp[20]);
+	c->dig_P9 = (s16)bme280_get_le16(&buf_tp[22]);
 
 	/* Validate critical divisor coefficients are non-zero */
 	if (c->dig_T1 == 0 || c->dig_P1 == 0) {
@@ -284,7 +289,7 @@ static int bme280_read_calibration(struct bme280_data *data)
 	if (ret != BME280_CALIB_HUM_LEN)
 		return -EIO;
 
-	c->dig_H2 = (s16)get_unaligned_le16(&buf_h[0]);
+	c->dig_H2 = (s16)bme280_get_le16(&buf_h[0]);
 	c->dig_H3 = buf_h[2];
 	/* dig_H4 (0xE4[7:0] << 4 | 0xE5[3:0]) and dig_H5 (0xE6[7:0] << 4 | 0xE5[7:4]) are 12-bit signed */
 	c->dig_H4 = (s16)sign_extend32(((u16)buf_h[3] << 4) | (buf_h[4] & 0x0F), 11);

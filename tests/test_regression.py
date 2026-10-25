@@ -309,7 +309,7 @@ class TestBME280DriverAndUserspace(unittest.TestCase):
         self.assertIn("bme280_reprogram_standby_locked", driver_src)
         self.assertIn("bme280_read_avail", driver_src)
         self.assertIn("IIO_VAL_FRACTIONAL", driver_src)
-        self.assertIn("get_unaligned_le16", driver_src)
+        self.assertIn("bme280_get_le16", driver_src)
         self.assertIn("sign_extend32", driver_src)
 
     @unittest.skipUnless(HIL_ENABLED, "HIL tests require Raspberry Pi 5 target (set BME280_HIL=1)")
